@@ -33,10 +33,10 @@ namespace Zipper_Cedric
 
         private void button2_Click(object sender, EventArgs e)
         {
-            s.OpenCompressedFile(out byte[] tree, out byte[] data); //picks a compressed file and splits it into tree bytes + encoded data
-            node top = s.loadTree(tree); //rebuilds the Huffman tree
-            byte[] decoded = s.decode_file(data, top); //walks the tree bit by bit to recover the original bytes
-            s.SaveFile(decoded); //lets the user pick where to save the decompressed file
+            unzip.OpenCompressedFile(out byte[] tree, out byte[] data);
+            node top = unzip.loadTree(tree);
+            byte[] decoded = unzip.decode_file(data, top);
+            unzip.SaveFile(decoded);
         }
     }
 }
