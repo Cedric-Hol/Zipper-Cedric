@@ -28,9 +28,14 @@ namespace Zipper_Cedric
                 t += s.convertByte2String(zipfile[i]);
             }
 
-            node top = rebuildTree(t);
-            return (null, null);
+            int p = 0;
+            node top = rebuildTree(t, ref p);
+            int f = (p + 7) / 8;
+            byte[] encode = new byte[zipfile.Length - f];
+            Array.Copy(zipfile, f, encode, 0, encode.Length);
+            return (encode, top);
         }
+
 
         /// <summary>
         /// rebuild the tree with the string
@@ -41,14 +46,30 @@ namespace Zipper_Cedric
         /// 0 make non leaf (Go left then go right)
         /// and go to the right for the next leaf
         /// </algo>
-        private static node rebuildTree(string t)
+        private static node rebuildTree(string t, ref int P)
         {
+            char bit = t[P];
+            P++;
 
+            if (bit == '1')
+            {
+                byte b = Convert.ToByte(t.Substring(P, 8), 2);
+                P += 8;
+                return new node(0, b);
+            }
+            else
+            {
+                node n = new node(0, 0);
+                n.L = rebuildTree(t, ref P);
+                n.R = rebuildTree(t, ref P);
+                return n;
+            }
         }
 
         internal static byte[] restoreFile(byte[] encode, node top)
         {
             throw new NotImplementedException();
+
         }
 
 
