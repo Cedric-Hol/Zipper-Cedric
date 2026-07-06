@@ -27,16 +27,16 @@ namespace Zipper_Cedric
             node top = L.MakeTree(L); 
             string[] codes = s.NewCodes(top);
             byte[] encode = s.encode_file(file, codes);
-            byte[] savetree = s.save(top);  
+            byte[] savetree = s.savetree(top);  
             s.SaveFileWithTree(savetree, encode); 
         }
 
         private void button2_Click(object sender, EventArgs e)
         {
-            unzip.OpenCompressedFile(out byte[] tree, out byte[] data);
-            node top = unzip.loadTree(tree);
-            byte[] decoded = unzip.decode_file(data, top);
-            unzip.SaveFile(decoded);
+            byte[] zipfile = s.OpenFile();
+            (byte[] encode, node top) = unzip.restoreTreeGetEncode(zipfile);
+            byte[] orgfile = unzip.restoreFile(encode, top);
+            unzip.saveFile(orgfile);
         }
     }
 }

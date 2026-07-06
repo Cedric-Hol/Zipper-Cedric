@@ -80,95 +80,131 @@ namespace Zipper_Cedric
                 recNewCodes(n.R, codes, s + '0');
             }
         }
+
         /// <summary>
-        /// encodes the file with the original file and the codes
+        /// returns byte array with extra padding in order
+        /// to have a multiple of 8 
         /// </summary>
         /// <algo>
-        /// sum up each byte's length to get the total bit count so that its known
-        /// write each code's bit to the array
+        /// make an empty string
+        /// read each byte of file and add corresponding code to string
+        /// add padding to get a length multiple of 8
+        /// convert bits to byte[]
         /// </algo>
         internal static byte[] encode_file(byte[] file, string[] codes)
         {
-            long totalBits = 0;
-            foreach (byte b in file) totalBits += codes[b].Length;
-
-            int padding = (int)((8 - totalBits % 8) % 8);
-            byte[] result = new byte[1 + (totalBits + padding) / 8];
-            result[0] = (byte)padding;
-            int bitPos = 0;
-            foreach (byte b in file)
+            string d = "";
+            for (int i = 0; i < file.Length; i++)
             {
-                string code = codes[b];
-                foreach (char c in code)
+                d += codes[file[i]];
+            }
+            int remain = d.Length % 8;
+            int padding = 0;
+            if (remain != 0)
+            {
+                padding = 8 - remain;
+                for (int i = 0; i < padding; i++)
                 {
-                    if (c == '1')
-                        result[1 + bitPos / 8] |= (byte)(1 << (7 - bitPos % 8));
-                    bitPos++;
+                    d += "0";
                 }
             }
+            byte[] result = new byte[d.Length / 8 + 1];
+            for (int i = 0; i < d.Length / 8; i++)
+            {
+                result[i] = Convert.ToByte(d.Substring(i * 8, 8), 2);
+            }
+            result[result.Length - 1] = (byte)padding;
             return result;
         }
 
         /// <summary>
-        /// saves the tree so that it can be used for unzipping
+        /// with the top of the tree walk down the tree
+        /// save what you find to a byte array
         /// </summary>
         /// <algo>
-        /// count the leaves to get the total bit count so its known
-        /// write each node's bit (and leaf's byte value) to the array
+        /// make an empty string
+        /// walk down the tree.
+        /// 
+        /// check if there is any padding needed
+        /// convert string to byte[] and return that byte[]
         /// </algo>
-        internal static byte[] save(node top)
+        internal static byte[] savetree(node top)
         {
-            int leafCount = 0;
-            void Count(node n)
+            string t = "";
+            string finaleT = walksavetree(top, t);
+            int remain = finaleT.Length % 8;
+            int padding = 0;
+            if (remain != 0)
             {
-                if (n.L == null && n.R == null)
-                    leafCount++;
-                else
+                padding = 8 - remain;
+                for (int i = 0; i < padding; i++)
                 {
-                    Count(n.L);
-                    Count(n.R);
+                    finaleT += "0";
                 }
             }
-            Count(top);
-
-            long totalBits = 9L * leafCount + (leafCount - 1);
-            int padding = (int)((8 - totalBits % 8) % 8);
-            byte[] result = new byte[1 + (totalBits + padding) / 8];
-            result[0] = (byte)padding;
-
-            int bitPos = 0;
-            void WriteBit(int bit)
+            byte[] result = new byte[finaleT.Length / 8];
+            for (int i = 0; i < finaleT.Length / 8; i++)
             {
-                if (bit == 1)
-                    result[1 + bitPos / 8] |= (byte)(1 << (7 - bitPos % 8));
-                bitPos++;
+                result[i] = Convert.ToByte(finaleT.Substring(i * 8, 8), 2);
             }
-
-            void Walk(node n)
-            {
-                if (n.L == null && n.R == null)
-                {
-                    WriteBit(1);
-                    for (int i = 7; i >= 0; i--)
-                        WriteBit((int)((n.B >> i) & 1));
-                }
-                else
-                {
-                    WriteBit(0);
-                    Walk(n.L);
-                    Walk(n.R);
-                }
-            }
-
-            Walk(top);
             return result;
+        }
+        /// <summary>
+        /// The walk function for the savetree
+        /// returns the finale string t with all the right bits
+        /// </summary>
+        /// <algo>
+        /// check if the leaf L and R are empty for the recursion.
+        /// 
+        /// NL(non-leaf): encode as 0 and go Left and thereafter Right
+        /// L (leaf)    : encode as 1 and save byte as 8 bits
+        /// 
+        /// return t as the final string
+        /// </algo>
+        internal static string walksavetree(node n, string t)
+        {
+            if (n.L != null)
+            {
+                t += '0';
+                t = walksavetree(n.L, t);
+                t = walksavetree(n.R, t);
+            }
+            else 
+            {
+                t += '1';
+                t += convertByte2String(n.B);
+            }
+            return t;
         }
 
         /// <summary>
-        /// saves the tree with the data
+        /// converts the given byte B to a string
         /// </summary>
+        /// <algo>
+        /// make temp sting
+        /// walk truh the byte and convert them to string
+        /// return the temp string
+        /// </algo>
+        public static string convertByte2String(byte B)
+        {
+            string temp = "";
+            for (int i = 7; i >= 0; i--)
+            {
+                temp += (char)('0' + ((B >> i) & 1));
+            }
+            return temp;
+        }
+
+        /// <summary>
+        /// saves to a file with the tree and the data
+        /// </summary>
+        /// <algo>
+        /// make the two arrays into 1
+        /// write each byte to a file
+        /// </algo>
         internal static void SaveFileWithTree(byte[] tree, byte[] data)
         {
+            byte[] joinedArray = tree.Concat(data).ToArray();
             using (SaveFileDialog dialog = new SaveFileDialog())
             {
                 if (dialog.ShowDialog() != DialogResult.OK)
@@ -176,21 +212,22 @@ namespace Zipper_Cedric
 
                 using (var stream = System.IO.File.Create(dialog.FileName))
                 {
-                    stream.Write(BitConverter.GetBytes(tree.Length), 0, 4);
-                    stream.Write(tree, 0, tree.Length);
-                    stream.Write(data, 0, data.Length);
+                    foreach (byte b in joinedArray)
+                    {
+                        stream.WriteByte(b);
+                    }
                 }
             }
         }
-       
     }
 
     public class node
     {
-        public uint F, B;
+        public uint F;
+        public byte B;
         public node P, N, L, R;
 
-        public node(uint f, uint b)
+        public node(uint f, byte b)
         {
             this.F = f;
             this.B = b;
