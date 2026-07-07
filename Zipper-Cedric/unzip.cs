@@ -65,17 +65,66 @@ namespace Zipper_Cedric
                 return n;
             }
         }
-
+        /// <summary>
+        /// Restore the file with the top of the tree
+        /// and walk down it untill you have the tree
+        /// </summary>
+        /// <algo>
+        /// make the byte[] encode into a bit string 
+        /// minus the last place(This is padding)
+        /// make a list to hold the bytes for now
+        /// Start at the top of the tree
+        /// Consume a bit untill you reach a leaf
+        /// when in a leaf make the byte and put it in the byte[]
+        /// confert the list<byte> to an byte[]
+        /// return the byte[]
+        /// </algo>
         internal static byte[] restoreFile(byte[] encode, node top)
         {
-            throw new NotImplementedException();
+            byte padding = encode[encode.Length - 1];
+            byte[] trimmed = encode.Take(encode.Length - 1).ToArray();
+            string bits = string.Join("", trimmed.Select(b => Convert.ToString(b, 2).PadLeft(8, '0')));
+            string realBits = bits.Substring(0, bits.Length - padding);
 
+            List<byte> data = new List<byte>();
+            node cur = top;
+            foreach (char b in realBits)
+            {
+                if (b == '1')
+                {
+                    cur = cur.L;
+                }
+                else
+                {
+                    cur = cur.R;
+                }
+                if (cur.L == null)
+                {
+                    data.Add(cur.B);
+                    cur = top;
+                }
+            }
+            return data.ToArray();
         }
 
-
+        /// <summary>
+        /// writes the data to a file
+        /// </summary>
         internal static void saveFile(byte[] orgfile)
         {
-            throw new NotImplementedException();
+            using (SaveFileDialog dialog = new SaveFileDialog())
+            {
+                if (dialog.ShowDialog() != DialogResult.OK)
+                    return;
+
+                using (var stream = System.IO.File.Create(dialog.FileName))
+                {
+                    foreach (byte b in orgfile)
+                    {
+                        stream.WriteByte(b);
+                    }
+                }
+            }
         }
     }
 }
