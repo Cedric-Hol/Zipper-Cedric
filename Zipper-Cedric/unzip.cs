@@ -9,8 +9,6 @@ namespace Zipper_Cedric
 {
     internal class unzip
     {
-
-
         /// <summary>
         /// return encoded data and tree top from the zipfile
         /// </summary>
@@ -35,7 +33,52 @@ namespace Zipper_Cedric
             Array.Copy(zipfile, f, encode, 0, encode.Length);
             return (encode, top);
         }
-
+        /// <summary>
+        /// return encoded data and tree top from the zipfile
+        /// </summary> 
+        /// <algo> 
+        /// rebuild tree with empty string and when 
+        /// string is to short while rebuilding tree 
+        /// consume extra byte to lengthen string
+        /// 
+        /// 
+        /// start with an empty string
+        /// consume the first byte into bits to the string
+        /// save the byte that you ate so you know where you are in the bytes[]
+        /// when you ate bit from the string a
+        /// 0 : go left then right
+        /// 1 : make leaf and consume next 8 bits
+        /// 
+        /// when there arn't enought bits eat the next byte
+        /// until you rebuild the tree
+        /// 
+        /// the final bytes in the array will be the encoded data
+        /// return the encoded data and the top of the tree
+        /// </algo>
+        internal static (byte[] encode, node top) xrestoreTreeGetEncode(byte[] zipfile)
+        {
+            string t = "";
+            int p = 0;
+            foreach (byte b in zipfile)
+            {
+                t += s.convertByte2String(b);
+                node top;
+                try
+                {
+                    top = rebuildTree(t, p);
+                    p += 8;
+                }
+                catch (Exception)
+                {
+                    continue;
+                }
+ 
+                int treeByte = (p+7) / 8;
+                byte[] encode = zipfile.Skip(treeByte).ToArray();
+                return (encode, top);
+            }
+            return (null, null);
+        }
 
         /// <summary>
         /// rebuild the tree with the string
@@ -46,7 +89,7 @@ namespace Zipper_Cedric
         /// 0 make non leaf (Go left then go right)
         /// and go to the right for the next leaf
         /// </algo>
-        private static node rebuildTree(string t, ref int P)
+        private static node rebuildTree(string t, int P)
         {
             char bit = t[P];
             P++;
@@ -54,14 +97,13 @@ namespace Zipper_Cedric
             if (bit == '1')
             {
                 byte b = Convert.ToByte(t.Substring(P, 8), 2);
-                P += 8;
                 return new node(0, b);
             }
             else
             {
                 node n = new node(0, 0);
-                n.L = rebuildTree(t, ref P);
-                n.R = rebuildTree(t, ref P);
+                n.L = rebuildTree(t, P);
+                n.R = rebuildTree(t, P);
                 return n;
             }
         }

@@ -34,7 +34,7 @@ namespace Zipper_Cedric
         private void button2_Click(object sender, EventArgs e)
         {
             byte[] zipfile = s.OpenFile();
-            (byte[] encode, node top) = unzip.restoreTreeGetEncode(zipfile);
+            (byte[] encode, node top) = unzip.xrestoreTreeGetEncode(zipfile);
             byte[] orgfile = unzip.restoreFile(encode, top);
             unzip.saveFile(orgfile);
         }
